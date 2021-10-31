@@ -32,7 +32,7 @@ struct spinlock wait_lock;
 void
 proc_mapstacks(pagetable_t kpgtbl) {
   struct proc *p;
-  
+
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
@@ -47,7 +47,7 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -88,7 +88,7 @@ myproc(void) {
 int
 allocpid() {
   int pid;
-  
+
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
@@ -119,6 +119,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->createTime = ticks;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -229,7 +230,7 @@ userinit(void)
 
   p = allocproc();
   initproc = p;
-  
+
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
@@ -291,6 +292,8 @@ fork(void)
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
+
+  np->mask = p->mask;
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
@@ -365,7 +368,7 @@ exit(int status)
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
-  
+
   acquire(&p->lock);
 
   p->xstate = status;
@@ -421,7 +424,7 @@ wait(uint64 addr)
       release(&wait_lock);
       return -1;
     }
-    
+
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
@@ -439,28 +442,60 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+    #ifdef RR
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+        release(&p->lock);
       }
-      release(&p->lock);
-    }
+    #endif
+    #ifdef FCFS
+      struct proc *Eproc = 0;
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          // FCFS scheduling
+          if(Eproc == 0 || Eproc->createTime > p->createTime) {
+            Eproc = p;
+          }
+        }
+        release(&p->lock);
+      }
+
+      if (Eproc) {
+        acquire(&Eproc->lock); // lock the chosen process
+        if(Eproc->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          Eproc->state = RUNNING; // set running state
+          c->proc = Eproc; // set current process
+          swtch(&c->context, &Eproc->context); // switch to the process
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0; // no longer running
+        }
+        release(&Eproc->lock); // release the lock
+      }
+    #endif
   }
 }
 
@@ -529,7 +564,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+
   // Must acquire p->lock in order to
   // change p->state and then call sched.
   // Once we hold p->lock, we can be
@@ -650,7 +685,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    printf("%d %s %s %d", p->pid, state, p->name, p->createTime);
     printf("\n");
   }
 }
