@@ -132,6 +132,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,
 [SYS_waitx]   sys_waitx,
+[SYS_set_priority]   sys_set_priority,
 };
 
 static char *syscall_names[] = {

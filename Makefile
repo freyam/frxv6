@@ -50,7 +50,9 @@ endif
 
 QEMU = qemu-system-riscv64
 
-SCHEDULER := RR
+ifndef SCHEDULER
+	SCHEDULER:=RR
+endif
 
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas
@@ -137,6 +139,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_strace\
 	$U/_setpriority\
+	$U/_schedulertest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

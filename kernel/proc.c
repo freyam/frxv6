@@ -674,28 +674,38 @@ int either_copyin(void *dst, int user_src, uint64 src, uint64 len) {
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
-void procdump(void) {
-    static char *states[] = {
-        [UNUSED] "unused",
-        [SLEEPING] "sleep ",
-        [RUNNABLE] "runble",
-        [RUNNING] "run   ",
-        [ZOMBIE] "zombie"};
-    struct proc *p;
-    char *state;
+void procdump(void)
+{
+  static char *states[] = {
+  [UNUSED]    "unused",
+  [SLEEPING]  "sleep ",
+  [RUNNABLE]  "runble",
+  [RUNNING]   "run   ",
+  [ZOMBIE]    "zombie"
+  };
+  struct proc *p;
+  char *state;
 
-    printf("\n");
-    for (p = proc; p < &proc[NPROC]; p++) {
-        if (p->state == UNUSED)
-            continue;
-        if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
-            state = states[p->state];
-        else
-            state = "???";
-        printf("%d %s %s %d", p->pid, state, p->name, p->createTime);
-        printf("\n");
-    }
+  printf("\n");
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == UNUSED)
+      continue;
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+
+    #if defined RR || defined FCFS
+    int wtime = ticks - p->createTime - p->totalRunTime;
+    printf("%d\t%s\t%d\t%d\t%d\n", p->pid, state, p->totalRunTime, wtime, p->num_runs);
+    #endif
+    #ifdef PBS
+    int wtime = ticks - p->createTime - p->totalRunTime;
+    printf("%d\t%d\t%s\t%d\t%d\t%d\n", p->pid, p->priority , state, p->totalRunTime, wtime, p->num_runs);
+    #endif
+  }
 }
+
 
 void update_time() {
     struct proc *p;

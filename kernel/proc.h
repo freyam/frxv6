@@ -108,15 +108,15 @@ struct proc {
 
   int mask; // Traced Syscall Mask
 
-  uint createTime;              // Time of creation
-  uint startTime;               // Time of start
-  uint exitTime;                // Time of exit
-  uint runTime;                // Time spent running
-  uint waitTime;                // Time spent waiting
-  uint sleepTime;               // Time spent sleeping
-  uint totalRunTime;           // Total time spent running
-  uint num_runs;            // Number of runs
-  uint priority;             // Process priority
+  uint createTime;   // Time of creation
+  uint startTime;    // Time of start
+  uint exitTime;     // Time of exit
+  uint runTime;      // Time spent running
+  uint waitTime;     // Time spent waiting
+  uint sleepTime;    // Time spent sleeping
+  uint totalRunTime; // Total time spent running
+  uint num_runs;     // Number of runs
+  uint priority;     // Process priority
 };
 
 extern struct proc proc[NPROC];
