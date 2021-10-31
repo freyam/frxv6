@@ -105,6 +105,8 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_trace(void);
+extern uint64 sys_waitx(void);
+extern uint64 sys_set_priority(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -129,6 +131,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,
+[SYS_waitx]   sys_waitx,
 };
 
 static char *syscall_names[] = {
@@ -154,6 +157,8 @@ static char *syscall_names[] = {
 [SYS_mkdir]   "mkdir",
 [SYS_close]   "close",
 [SYS_trace]   "trace",
+[SYS_waitx]   "waitx",
+[SYS_set_priority] "set_priority",
 };
 
 static int syscalls_num[] = {
@@ -179,6 +184,8 @@ static int syscalls_num[] = {
 [SYS_mkdir] 1,
 [SYS_close] 1,
 [SYS_trace] 1,
+[SYS_waitx] 3,
+[SYS_set_priority] 2,
 };
 
 void
@@ -189,7 +196,6 @@ syscall(void)
   num = p->trapframe->a7;
 
   int length = syscalls_num[num];
-
   int a[length];
 
   for (int i = 0; i < length; i++)

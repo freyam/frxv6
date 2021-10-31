@@ -1,0 +1,13 @@
+{
+  "files.associations": {
+    "random": "c",
+    "algorithm": "c",
+    "spinlock.h": "c",
+    "memory": "c",
+    "stop_token": "c",
+    "__mutex_base": "c",
+    "semaphore": "c",
+    "condition_variable": "c",
+    "mutex": "c"
+  }
+}

@@ -107,3 +107,50 @@ sys_trace()
 
   return 0;
 }
+
+uint64
+sys_waitx(void)
+{
+  uint64 addr, addr1, addr2;
+  uint wtime, rtime;
+  if(argaddr(0, &addr) < 0)
+    return -1;
+  if(argaddr(1, &addr1) < 0) // user virtual memory
+    return -1;
+  if(argaddr(2, &addr2) < 0)
+    return -1;
+  int ret = waitx(addr, &wtime, &rtime);
+  struct proc* p = myproc();
+  if (copyout(p->pagetable, addr1,(char*)&wtime, sizeof(int)) < 0)
+    return -1;
+  if (copyout(p->pagetable, addr2,(char*)&rtime, sizeof(int)) < 0)
+    return -1;
+  return ret;
+}
+
+uint64
+sys_set_priority()
+{
+  int priority, pid;
+  int oldpriority = 101;
+  if(argint(0, &priority) < 0 || argint(1, &pid) < 0)
+    return -1;
+
+  for(struct proc *p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+
+    if(p->pid == pid && priority >= 0 && priority <= 100)
+    {
+      p->sleepTime = 0;
+      p->runTime = 0;
+      oldpriority = p->priority;
+      p->priority = priority;
+    }
+
+    release(&p->lock);
+  }
+  if(oldpriority > priority)
+  yield();
+  return oldpriority;
+}

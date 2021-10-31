@@ -77,7 +77,7 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  #ifndef FCFS
+  #if defined RR || MLFQ
     if(which_dev == 2)
       yield();
   #endif
@@ -151,7 +151,7 @@ kerneltrap()
     panic("kerneltrap");
   }
 
-  #ifndef FCFS
+  #if defined RR || MLFQ
     // give up the CPU if this is a timer interrupt.
     if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
       yield();
@@ -168,6 +168,7 @@ clockintr()
 {
   acquire(&tickslock);
   ticks++;
+  update_time();
   wakeup(&ticks);
   release(&tickslock);
 }
